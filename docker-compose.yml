@@ -1,0 +1,52 @@
+version: "3.5"
+services:
+  minio:
+    image: minio/minio
+    container_name: minio
+    command: "server /data --console-address ':9001'"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
+    ports:
+      - 9002:9000
+      - 9001:9001
+    networks:
+      - app-net
+    volumes:
+      - ./data/minio-data:/data
+  etl:
+    container_name: src
+    build: .
+    command: python ./etl.py
+    env_file: 
+      - .env
+    depends_on:
+      - minio
+    networks:
+      - app-net
+  training:
+    container_name: training
+    build: .
+    command: python ./train.py
+    env_file: 
+     - .env
+    networks:
+      - app-net
+  # fastapi:
+  #   container_name: api
+  #   build: .
+  #   ports:
+  #     - 8000:8000
+  #   env_file: 
+  #    - .env
+  #   networks:
+  #     - app-net
+  #   command: uvicorn app:app --host=0.0.0.0 --reload
+volumes:
+  cache:
+    driver: local
+  minio-data:
+    driver: local
+networks:
+  app-net:
+    driver: bridge
