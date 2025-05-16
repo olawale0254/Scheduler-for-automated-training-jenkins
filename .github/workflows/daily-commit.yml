@@ -2,27 +2,31 @@ name: Daily Commit
 
 on:
   schedule:
-    - cron: "0 8 * * *"  # Runs daily at 8 AM UTC
-  workflow_dispatch:     # Allows you to trigger manually too
+    - cron: "0 8 * * *"  # Runs every day at 8:00 AM UTC
+  workflow_dispatch:      # Allows manual trigger
 
 jobs:
-  update-file:
+  commit:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Append timestamp
-      run: |
-        echo "Commit made at $(date)" >> log.txt
+      - name: Make daily update to log.txt
+        run: |
+          echo "Daily commit on $(date -u)" >> log.txt
 
-    - name: Commit changes
-      run: |
-        git config --global user.name "your-username"
-        git config --global user.email "your-email@example.com"
-        git add log.txt
-        git commit -m "chore: daily commit on $(date)"
-        git push
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit and push changes
+        run: |
+          git add log.txt
+          git commit -m "chore: daily commit on $(date -u)" || echo "No changes to commit"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git push origin HEAD
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
